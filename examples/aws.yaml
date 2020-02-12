@@ -3,3 +3,23 @@ tosca_definitions_version: cloudify_dsl_1_3
 imports:
   - http://www.getcloudify.org/spec/cloudify/5.0.5/types.yaml
   - plugin:cloudify-serverless-plugin
+
+
+node_templates:
+
+  example-aws-serverless:
+    type: cloudify.nodes.serverless.Service
+    properties:
+      provider_config:
+        provider: aws
+        config:
+          aws_key_id: '1'
+          aws_secret_id: '2'
+      service_config:
+        name: 'test_service'
+        template: 'aws-python3'
+        path: 'test_service'
+      functions:
+        - name: test_function
+          handler: handler_test
+

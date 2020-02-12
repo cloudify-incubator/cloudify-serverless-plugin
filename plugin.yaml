@@ -13,14 +13,52 @@ data_types:
         type: string
         description: The Serverless provider name.
         required: false
-      credentials:
+      config:
         description: Credentials of the provider.
         required: false
         type: dict
-      config_path:
-        description: Path to credentials config path.
-        required: false
+
+  cloudify.types.serverless.ServiceConfig:
+    properties:
+      name:
         type: string
+        description: The Serverless service name.
+        required: true
+      template:
+        type: string
+        description: Template for the service.
+        required: true
+      template_url:
+        type: string
+        description: Template URL for the service. Supports GitHub, BitBucket.
+        required: false
+      template_path:
+        type: string
+        description: Template local path for the service.
+        required: false
+      path:
+        type: string
+        description: The path where the service should be created.
+        required: false
+
+  cloudify.types.serverless.FunctionConfig:
+    properties:
+      name:
+        type: string
+        description: The Serverless function name.
+        required: true
+      handler:
+        type: string
+        description: The Serverless function handelr.
+        required: true
+      events:
+        type: list
+        description: List of events assoicated with the function.
+        required: false
+      environment:
+        type: dict
+        description: Function environment variables.
+        required: false
 
 
 node_types:
@@ -31,18 +69,18 @@ node_types:
         type: cloudify.types.serverless.BaseConfig
         required: true
         description: Provider Config
-      service_path:
-        type: string
+      service_config:
+        type: cloudify.types.serverless.ServiceConfig
         required: true
         description: Path to the service file
+      functions:
+        type: list
+        required: true
+        description: List of function that need to define
       executable_path:
         type: string
         description: The path to the serverless binary executable.
         default: /usr/bin/serverless
-      functions:
-        type: list
-        required: false
-        description: List of functions to deploy
       variables:
         type: dict
         description: Set of variables to use for functions
