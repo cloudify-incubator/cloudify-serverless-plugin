@@ -3,5 +3,5 @@ plugins:
   serverless:
     executor: central_deployment_agent
     source: https://github.com/mabuaisha/cloudify-serverless-plugin/archive/0.1.zip
-    package_name: cloudify-openstack-plugin
+    package_name: cloudify-serverless-plugin
     package_version: '0.1'
