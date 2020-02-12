@@ -114,7 +114,7 @@ class Serverless(object):
         if options:
             cmd.extend(options)
         cmd = self._serverless_command(cmd)
-        return self.execute(cmd, cwd)
+        return self.execute(cmd, cwd=cwd)
 
     def create(self):
         return self._action_command('create', self.service_config_options)
@@ -131,10 +131,12 @@ class Serverless(object):
         functions = []
         # Handling functions configurations
         for function in self.functions:
+            function_name = function['name']
             fn_config = {
-                key: value for key, value in function.items() if key != 'path'
+                key: value for key, value in function.items()
+                if key not in ['path', 'name']
             }
-            functions.append(fn_config)
+            functions.append({function_name: fn_config})
 
         config['functions'] = functions
 
@@ -152,12 +154,13 @@ class Serverless(object):
 
     def clean(self):
         self.execute(['rm', '-rf', self.service_config.get('path')])
+        self.execute(['rm', '-rf', self.credentials_dir])
 
     def execute(self, command, return_output=False, cwd=None):
         if not cwd:
             cwd = self.root_directory
         self.logger.info(
-            "Running: %s, working directory: %s", command, self.root_directory
+            "Running: %s, working directory: %s", command, cwd
         )
 
         process = subprocess.Popen(
