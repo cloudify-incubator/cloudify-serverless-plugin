@@ -5,3 +5,55 @@ plugins:
     source: https://github.com/mabuaisha/cloudify-serverless-plugin/archive/0.1.zip
     package_name: cloudify-serverless-plugin
     package_version: '0.1'
+
+data_types:
+  cloudify.types.serverless.BaseConfig:
+    properties:
+      provider:
+        type: string
+        description: The Serverless provider name.
+        required: false
+      credentials:
+        description: Credentials of the provider.
+        required: false
+        type: dict
+      config_path:
+        description: Path to credentials config path.
+        required: false
+        type: string
+
+
+node_types:
+  cloudify.nodes.serverless.Service:
+    derived_from: cloudify.nodes.SoftwareComponent
+    properties:
+      provider_config:
+        type: cloudify.types.serverless.BaseConfig
+        required: true
+        description: Provider Config
+      service_path:
+        type: string
+        required: true
+        description: Path to the service file
+      executable_path:
+        type: string
+        description: The path to the serverless binary executable.
+        default: /usr/bin/serverless
+      functions:
+        type: list
+        required: false
+        description: List of functions to deploy
+      variables:
+        type: dict
+        description: Set of variables to use for functions
+        required: false
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          implementation: serverless.serverless_plugin.tasks.create
+        configure:
+          implementation: serverless.serverless_plugin.tasks.configure
+        start:
+          implementation: serverless.serverless_plugin.tasks.start
+        delete:
+          implementation: serverless.serverless_plugin.tasks.delete

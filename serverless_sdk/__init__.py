@@ -25,10 +25,31 @@ class Serverless(object):
     Serverless in different providers
     """
 
-    def __init__(self, logger, service_path, executable_path):
-        self.service_path = service_path
+    def __init__(self,
+                 logger,
+                 provider_config,
+                 service_path,
+                 executable_path=None,
+                 credentials=None,
+                 functions=None,
+                 variables=None):
         self.logger = logger
-        self.executable_path = executable_path
+        self.service_path = service_path
+        self.provider_config = provider_config
+        self.executable_path = executable_path or 'serverless'
+        self.credentials = credentials
+        self.functions = functions
+        self.variables = variables
+
+    @property
+    def command_args(self):
+        return [
+            self.verbosity,
+            '-i {0}'.format(self.sources),
+            self.options,
+            self.additional_args,
+            self.playbook
+        ]
 
     def init(self):
         pass
