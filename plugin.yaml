@@ -97,3 +97,9 @@ node_types:
           implementation: serverless.serverless_plugin.tasks.stop
         delete:
           implementation: serverless.serverless_plugin.tasks.delete
+        serverless.interface:
+          invoke:
+            implementation: serverless.serverless_plugin.tasks.invoke
+            inputs:
+              functions:
+                default: []

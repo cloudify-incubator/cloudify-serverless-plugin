@@ -63,3 +63,10 @@ def stop(ctx, serverless, **_):
 @with_serverless
 def delete(ctx, serverless, **_):
     serverless.clean()
+
+
+@operation
+@with_serverless
+def invoke(ctx, serverless, functions):
+    for function in functions:
+        serverless.invoke(function)

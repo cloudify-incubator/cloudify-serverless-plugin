@@ -143,6 +143,12 @@ class Serverless(object):
         with open(self.serverless_config_path, 'w') as updated_file:
             yaml.safe_dump(config, updated_file, default_flow_style=False)
 
+    def invoke(self, name):
+        return self._action_command('invoke', options=[
+            '--function',
+            name
+        ], cwd=self.serverless_base_dir)
+
     def deploy(self):
         return self._action_command('deploy', cwd=self.serverless_base_dir)
 
