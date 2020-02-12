@@ -12,9 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import yaml
+
 from cloudify.decorators import operation
 
 from decorators import with_serverless
+
+
+def _download_handlers(ctx, handler_path, target_path):
+    ctx.download_resource(handler_path, target_path)
 
 
 @operation
@@ -26,7 +32,14 @@ def create(ctx, serverless, **_):
 @operation
 @with_serverless
 def configure(ctx, serverless, **_):
-    pass
+    for function in serverless.functions:
+        _download_handlers(
+            ctx,
+            function['path'],
+            serverless.serverless_base_dir
+        )
+
+    serverless.configure()
 
 
 @operation

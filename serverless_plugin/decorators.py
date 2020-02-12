@@ -20,7 +20,7 @@ from functools import wraps
 from cloudify.exceptions import NonRecoverableError
 from cloudify.utils import exception_to_error_cause
 
-from serverless_sdk import Serverless, CloudifyServerlessSDKError
+from serverless_sdk import Serverless
 
 
 def with_serverless(func):
@@ -49,7 +49,7 @@ def with_serverless(func):
         kwargs['serverless'] = serverless
         try:
             func(*args, **kwargs)
-        except CloudifyServerlessSDKError as error:
+        except Exception as error:
             _, _, tb = sys.exc_info()
             raise NonRecoverableError(
                 'Failure while trying to run operation'

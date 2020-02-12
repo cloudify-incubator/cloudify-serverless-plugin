@@ -12,7 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 import subprocess
+
+import yaml
 
 from utils import CapturingOutputConsumer, LoggingOutputConsumer
 
@@ -52,8 +55,44 @@ class Serverless(object):
         self.root_directory = '/tmp'
 
     @property
+    def provider(self):
+        return self.provider_config.get('provider')
+
+    @property
     def credentials(self):
         return self.provider_config.get('config')
+
+    @property
+    def credentials_command(self):
+        return [
+            'config',
+            'credentials',
+            '--provider',
+            self.provider,
+            '--key',
+            self.credentials.get('key'),
+            '--secret',
+            self.credentials.get('secret')
+        ]
+
+    @property
+    def credentials_dir(self):
+        return os.path.join(os.path.expanduser('~'), '.aws')
+
+    @property
+    def serverless_base_dir(self):
+        return os.path.join(
+            self.root_directory,
+            self.serverless_path,
+        )
+
+    @property
+    def serverless_config_path(self):
+        return os.path.join(self.serverless_base_dir, 'serverless.yml')
+
+    @property
+    def serverless_path(self):
+        return self.service_config.get('path')
 
     @property
     def service_config_options(self):
@@ -77,7 +116,26 @@ class Serverless(object):
         return self.execute(cmd)
 
     def configure(self):
-        pass
+        if self.provider == 'aws':
+            cmd = self._serverless_command(self.credentials_command)
+            self.execute(cmd)
+
+        # TODO, need to handle other providers
+        with open(self.serverless_config_path, 'r') as yaml_file:
+            serverless_config = yaml_file.read()
+        config = yaml.safe_load(serverless_config)
+        functions = []
+        # Handling functions configurations
+        for function in self.functions:
+            config = {
+                key: value for key, value in function.items() if key != 'path'
+            }
+            functions.append(config)
+
+        config['functions'] = functions
+
+        with open(self.serverless_config_path, 'r+') as updated_file:
+            yaml.safe_dump(config, updated_file, default_flow_style=False)
 
     def install(self):
         pass
@@ -89,6 +147,7 @@ class Serverless(object):
         pass
 
     def clean(self):
+        self.execute(['rm', '-rf', self.service_config.get('path')])
         self.execute(['rm', '-rf', self.service_config.get('path')])
 
     def execute(self, command, return_output=False):

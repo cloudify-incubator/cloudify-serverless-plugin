@@ -20,6 +20,10 @@ node_templates:
         template: 'aws-python3'
         path: 'test_service'
       functions:
-        - name: test_function
-          handler: handler_test
+        - name: handler1
+          path: resources/handler_1.py
+          handler: handler_1.hello
+        - name: handler2
+          path: resources/handler_1.py
+          handler: handler_1.hello
 
