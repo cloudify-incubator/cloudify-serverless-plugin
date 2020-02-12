@@ -12,9 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import yaml
+import os
 
 from cloudify.decorators import operation
+from cloudify.exceptions import NonRecoverableError
 
 from decorators import with_serverless
 
@@ -33,10 +34,14 @@ def create(ctx, serverless, **_):
 @with_serverless
 def configure(ctx, serverless, **_):
     for function in serverless.functions:
+        if not function.get('path'):
+            raise NonRecoverableError('Function patt does not exist')
+
+        filename = function['path'].split('/')[-1]
         _download_handlers(
             ctx,
             function['path'],
-            serverless.serverless_base_dir
+            os.path.join(serverless.serverless_base_dir, filename)
         )
 
     serverless.configure()
