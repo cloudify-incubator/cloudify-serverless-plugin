@@ -143,14 +143,11 @@ class Serverless(object):
         with open(self.serverless_config_path, 'w') as updated_file:
             yaml.safe_dump(config, updated_file, default_flow_style=False)
 
-    def install(self):
-        pass
-
     def deploy(self):
         return self._action_command('deploy', cwd=self.serverless_base_dir)
 
     def destroy(self):
-        return self._action_command('remove')
+        return self._action_command('remove', cwd=self.serverless_base_dir)
 
     def clean(self):
         self.execute(['rm', '-rf', self.service_config.get('path')])

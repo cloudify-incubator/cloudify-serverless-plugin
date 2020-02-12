@@ -93,5 +93,7 @@ node_types:
           implementation: serverless.serverless_plugin.tasks.configure
         start:
           implementation: serverless.serverless_plugin.tasks.start
+        stop:
+          implementation: serverless.serverless_plugin.tasks.stop
         delete:
           implementation: serverless.serverless_plugin.tasks.delete
