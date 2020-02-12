@@ -50,7 +50,13 @@ def configure(ctx, serverless, **_):
 @operation
 @with_serverless
 def start(ctx, serverless, **_):
-    pass
+    serverless.deploy()
+
+
+@operation
+@with_serverless
+def stop(ctx, serverless, **_):
+    serverless.destroy()
 
 
 @operation

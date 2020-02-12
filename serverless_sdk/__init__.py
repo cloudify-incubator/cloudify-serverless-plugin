@@ -109,11 +109,15 @@ class Serverless(object):
         exe_cmd.extend(command)
         return exe_cmd
 
-    def create(self):
-        cmd = ['create']
-        cmd.extend(self.service_config_options)
+    def _action_command(self, action, options=[], cwd=None):
+        cmd = [action]
+        if options:
+            cmd.extend(options)
         cmd = self._serverless_command(cmd)
-        return self.execute(cmd)
+        return self.execute(cmd, cwd)
+
+    def create(self):
+        return self._action_command('create', self.service_config_options)
 
     def configure(self):
         if self.provider == 'aws':
@@ -127,31 +131,31 @@ class Serverless(object):
         functions = []
         # Handling functions configurations
         for function in self.functions:
-            config = {
+            fn_config = {
                 key: value for key, value in function.items() if key != 'path'
             }
-            functions.append(config)
+            functions.append(fn_config)
 
         config['functions'] = functions
 
-        with open(self.serverless_config_path, 'r+') as updated_file:
+        with open(self.serverless_config_path, 'w') as updated_file:
             yaml.safe_dump(config, updated_file, default_flow_style=False)
 
     def install(self):
         pass
 
     def deploy(self):
-        pass
+        return self._action_command('deploy', cwd=self.serverless_base_dir)
 
     def destroy(self):
-        pass
+        return self._action_command('remove')
 
     def clean(self):
         self.execute(['rm', '-rf', self.service_config.get('path')])
-        self.execute(['rm', '-rf', self.service_config.get('path')])
 
-    def execute(self, command, return_output=False):
-        additional_args = {}
+    def execute(self, command, return_output=False, cwd=None):
+        if not cwd:
+            cwd = self.root_directory
         self.logger.info(
             "Running: %s, working directory: %s", command, self.root_directory
         )
@@ -161,8 +165,8 @@ class Serverless(object):
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             stdin=None,
-            cwd=self.root_directory,
-            **additional_args)
+            cwd=cwd
+        )
 
         if return_output:
             stdout_consumer = CapturingOutputConsumer(
