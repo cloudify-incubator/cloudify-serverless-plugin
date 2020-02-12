@@ -1,0 +1,9 @@
+allow_kwargs_override: true
+operation_kwargs:
+  functions:
+   - hello_1
+   - hello_2
+operation: 'serverless.interface.invoke'
+node_instance_ids:
+  - example-aws-serverless_pqua9s 
+

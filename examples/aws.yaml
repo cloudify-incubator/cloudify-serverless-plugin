@@ -4,6 +4,14 @@ imports:
   - http://www.getcloudify.org/spec/cloudify/5.0.5/types.yaml
   - plugin:cloudify-serverless-plugin
 
+inputs:
+  aws_access_key_id:
+    default: { get_secret: aws_access_key_id }
+
+  aws_secret_access_key:
+    defualt: { get_secret: aws_secret_access_key }
+
+
 
 node_templates:
 
@@ -13,17 +21,17 @@ node_templates:
       provider_config:
         provider: aws
         config:
-          aws_key_id: '1'
-          aws_secret_id: '2'
+          key: { get_input: aws_access_key_id }
+          secret: { get_input: aws_secret_access_key }
       service_config:
-        name: 'test_service'
+        name: 'aws-service'
         template: 'aws-python3'
-        path: 'test_service'
+        path: 'aws-service'
       functions:
-        - name: handler1
+        - name: hello_1
           path: resources/handler_1.py
-          handler: handler_1.hello
-        - name: handler2
-          path: resources/handler_1.py
-          handler: handler_1.hello
+          handler: handler_1.hello_1
+        - name: hello_2
+          path: resources/handler_2.py
+          handler: handler_2.hello_2
 
