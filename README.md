@@ -1,3 +1,5 @@
+**This project is in development**
+
 # Cloudify Serverless Plugin
 
 ## Pre-install
