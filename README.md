@@ -42,3 +42,6 @@ cfy executions start execute_operation -d aws-serverless -p inputs.yaml
 ```
 cfy uninstall $deploymentid --allow-custom-parameters -p ignore_failure=true
 ```
+
+## Examples
+For official blueprint examples using this Cloudify plugin, please see [Cloudify Community Blueprints Examples](https://github.com/cloudify-community/blueprint-examples/).
