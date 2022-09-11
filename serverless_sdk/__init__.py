@@ -1,4 +1,4 @@
-# Copyright (c) 2020 Cloudify Platform Ltd. All rights reserved
+# Copyright (c) 2020 - 2022 Cloudify Platform Ltd. All rights reserved
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,11 +13,9 @@
 # limitations under the License.
 
 import os
-import subprocess
 
 import yaml
-
-from utils import CapturingOutputConsumer, LoggingOutputConsumer
+from cloudify_common_sdk.utils import run_subprocess
 
 
 class CloudifyServerlessSDKError(Exception):
@@ -41,26 +39,82 @@ class Serverless(object):
 
     def __init__(self,
                  logger,
-                 provider_config,
-                 service_config,
-                 functions,
-                 executable_path=None,
-                 variables=None):
+                 client_config,
+                 resource_config,
+                 serverless_config=None,
+                 root_directory=None,
+                 ):
+
         self.logger = logger
-        self.provider_config = provider_config
-        self.service_config = service_config
-        self.functions = functions
-        self.executable_path = executable_path
-        self.variables = variables
-        self.root_directory = '/tmp'
+        self._client_config = client_config
+        self._resource_config = resource_config
+        self._serverless_config = serverless_config
+        self._root_directory = root_directory
+        self._serverless_config_path = None
+        self._additional_args = {}
+        self._log_stdout = True
+
+    @property
+    def additional_args(self):
+        return self._additional_args
+
+    @property
+    def client_config(self):
+        return self._client_config
+
+    @property
+    def resource_config(self):
+        return self._resource_config
+
+    @property
+    def serverless_config(self):
+        return self._serverless_config
+
+    @property
+    def root_directory(self):
+        return self._root_directory
+
+    @additional_args.setter
+    def additional_args(self, value):
+        self._additional_args = value
+
+    @client_config.setter
+    def client_config(self, value):
+        self._client_config = value
+
+    @resource_config.setter
+    def resource_config(self, value):
+        self._resource_config = value
+
+    @serverless_config.setter
+    def serverless_config(self, value):
+        self._serverless_config = value
+
+    @root_directory.setter
+    def root_directory(self, value):
+        self._root_directory = value
 
     @property
     def provider(self):
-        return self.provider_config.get('provider')
+        return self.client_config.get('provider')
 
     @property
     def credentials(self):
-        return self.provider_config.get('config')
+        return self.client_config.get('credentials')
+
+    @property
+    def functions(self):
+        return self.resource_config.get('functions')
+
+    @property
+    def serverless_config_path(self):
+        if not self._serverless_config_path:
+            return os.path.join(self.root_directory, 'serverless.yml')
+        return self._serverless_config_path
+
+    @serverless_config_path.setter
+    def serverless_config_path(self, value):
+        self._serverless_config_path = value
 
     @property
     def credentials_command(self):
@@ -76,52 +130,43 @@ class Serverless(object):
         ]
 
     @property
-    def credentials_dir(self):
-        return os.path.join(os.path.expanduser('~'), '.aws')
+    def executable_path(self):
+        return self.serverless_config.get('executable_path')
 
     @property
-    def serverless_base_dir(self):
-        return os.path.join(
-            self.root_directory,
-            self.serverless_path,
-        )
-
-    @property
-    def serverless_config_path(self):
-        return os.path.join(self.serverless_base_dir, 'serverless.yml')
-
-    @property
-    def serverless_path(self):
-        return self.service_config.get('path')
-
-    @property
-    def service_config_options(self):
+    def options(self):
         options = []
-        for key, value in self.service_config.items():
+        for key, value in self.resource_config.items():
             if value:
                 option = SERVICE_CONFIG_MAP.get(key)
                 options.append(option)
                 options.append(value)
         return options
 
-    def _serverless_command(self, command):
+    def _command(self, command):
+        if not isinstance(command, list):
+            raise ValueError(
+                'Improper parameter command "{}", '
+                'value should be a list, it is a {}'.format(
+                    command, type(command)))
         exe_cmd = [self.executable_path]
         exe_cmd.extend(command)
         return exe_cmd
 
-    def _action_command(self, action, options=[], cwd=None):
-        cmd = [action]
+    def _subcommand(self, subcommand, options=None, cwd=None):
+        options = options or []
+        cmd = [subcommand]
         if options:
             cmd.extend(options)
-        cmd = self._serverless_command(cmd)
+        cmd = self._command(cmd)
         return self.execute(cmd, cwd=cwd)
 
     def create(self):
-        return self._action_command('create', self.service_config_options)
+        return self._subcommand('create', self.options)
 
     def configure(self):
         if self.provider == 'aws':
-            cmd = self._serverless_command(self.credentials_command)
+            cmd = self._command(self.credentials_command)
             self.execute(cmd)
 
         # TODO, need to handle other providers
@@ -144,54 +189,41 @@ class Serverless(object):
             yaml.safe_dump(config, updated_file, default_flow_style=False)
 
     def invoke(self, name):
-        return self._action_command('invoke', options=[
-            '--function',
-            name
-        ], cwd=self.serverless_base_dir)
+        return self._subcommand(
+            'invoke',
+            options=[
+                '--function',
+                name
+            ],
+            cwd=self.root_directory)
 
     def deploy(self):
-        return self._action_command('deploy', cwd=self.serverless_base_dir)
+        return self._subcommand('deploy', cwd=self.root_directory)
 
     def destroy(self):
-        return self._action_command('remove', cwd=self.serverless_base_dir)
+        return self._subcommand('remove', cwd=self.root_directory)
 
     def clean(self):
-        self.execute(['rm', '-rf', self.service_config.get('path')])
-        self.execute(['rm', '-rf', self.credentials_dir])
+        # TODO: I'm not sure if we want to be responsible here
+        #  for removing files. although that could be a good idea.
+        # self.execute(['rm', '-rf', self.resource_config.get('path')])
+        # TODO: Delete credentials dir for example .aws, .kube, etc.
+        # self.execute(['rm', '-rf', self.credentials_dir])
+        pass
 
-    def execute(self, command, return_output=False, cwd=None):
-        if not cwd:
-            cwd = self.root_directory
-        self.logger.info(
-            "Running: %s, working directory: %s", command, cwd
-        )
-
-        process = subprocess.Popen(
-            args=command,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            stdin=None,
-            cwd=cwd
-        )
-
-        if return_output:
-            stdout_consumer = CapturingOutputConsumer(
-                process.stdout)
-        else:
-            stdout_consumer = LoggingOutputConsumer(
-                process.stdout, self.logger, "<out> ")
-        stderr_consumer = LoggingOutputConsumer(
-            process.stderr, self.logger, "<err> ")
-
-        return_code = process.wait()
-        stdout_consumer.join()
-        stderr_consumer.join()
-
-        if return_code:
-            raise subprocess.CalledProcessError(return_code, command)
-
-        output = stdout_consumer.buffer.getvalue() if return_output else None
-        self.logger.info(
-            "Returning output:\n%s", output if output is not None else '<None>'
-        )
-        return output
+    def execute(self,
+                command,
+                return_output=None,
+                cwd=None,
+                additional_env=None
+                ):
+        return_output = return_output if return_output is not None \
+            else self._log_stdout
+        self.additional_args['log_stdout'] = return_output
+        return run_subprocess(
+            command,
+            self.logger,
+            cwd or self.root_directory,
+            additional_env,
+            self.additional_args,
+            return_output=return_output)

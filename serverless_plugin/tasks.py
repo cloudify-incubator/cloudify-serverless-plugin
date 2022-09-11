@@ -1,4 +1,4 @@
-# Copyright (c) 2020 Cloudify Platform Ltd. All rights reserved
+# Copyright (c) 2020 - 2022 Cloudify Platform Ltd. All rights reserved
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@ import os
 from cloudify.decorators import operation
 from cloudify.exceptions import NonRecoverableError
 
-from decorators import with_serverless
+from .decorators import with_serverless
 
 
 def _download_handlers(ctx, handler_path, target_path):
@@ -26,7 +26,7 @@ def _download_handlers(ctx, handler_path, target_path):
 
 @operation
 @with_serverless
-def create(ctx, serverless, **_):
+def create(serverless, **_):
     serverless.create()
 
 
@@ -49,24 +49,24 @@ def configure(ctx, serverless, **_):
 
 @operation
 @with_serverless
-def start(ctx, serverless, **_):
+def start(serverless, **_):
     serverless.deploy()
 
 
 @operation
 @with_serverless
-def stop(ctx, serverless, **_):
+def stop(serverless, **_):
     serverless.destroy()
 
 
 @operation
 @with_serverless
-def delete(ctx, serverless, **_):
+def delete(serverless, **_):
     serverless.clean()
 
 
 @operation
 @with_serverless
-def invoke(ctx, serverless, functions):
+def invoke(serverless, functions):
     for function in functions:
         serverless.invoke(function)

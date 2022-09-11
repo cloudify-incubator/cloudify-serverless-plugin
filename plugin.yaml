@@ -1,19 +1,27 @@
 plugins:
 
-  serverless:
+  sl:
     executor: central_deployment_agent
-    source: https://github.com/mabuaisha/cloudify-serverless-plugin/archive/0.1.zip
     package_name: cloudify-serverless-plugin
-    package_version: '0.1'
+    package_version: '0.2'
 
 data_types:
-  cloudify.types.serverless.BaseConfig:
+
+  cloudify.types.serverless.ServerlessConfig:
+    properties:
+      executable_path:
+        type: string
+        default: ''
+        description: File path to Serverless binary. Leave blank and Cloudify will store the binary.
+        required: false
+
+  cloudify.types.serverless.ClientConfig:
     properties:
       provider:
         type: string
         description: The Serverless provider name.
         required: false
-      config:
+      credentials:
         description: Credentials of the provider.
         required: false
         type: dict
@@ -36,10 +44,10 @@ data_types:
         type: string
         description: Template local path for the service.
         required: false
-      path:
-        type: string
-        description: The path where the service should be created.
-        required: false
+      functions:
+        type: list
+        required: true
+        description: List of function that need to define
 
   cloudify.types.serverless.FunctionConfig:
     properties:
@@ -60,46 +68,71 @@ data_types:
         description: Function environment variables.
         required: false
 
+dsl_definitions:
+
+  serverless_configuration: &serverless_config
+    serverless_config:
+      type: cloudify.types.serverless.ServerlessConfig
+
+  use_external_resource_desc: &use_external_resource_desc >
+    Indicate whether the resource exists or if Cloudify should create the resource,
+    true if you are bringing an existing resource, false if you want cloudify to create it.
+
+  external_resource: &external_resource
+    use_external_resource:
+      description: *use_external_resource_desc
+      type: boolean
+      default: false
 
 node_types:
-  cloudify.nodes.serverless.Service:
+
+  cloudify.nodes.serverless.Binary:
     derived_from: cloudify.nodes.SoftwareComponent
     properties:
-      provider_config:
-        type: cloudify.types.serverless.BaseConfig
-        required: true
-        description: Provider Config
-      service_config:
-        type: cloudify.types.serverless.ServiceConfig
-        required: true
-        description: Path to the service file
-      functions:
-        type: list
-        required: true
-        description: List of function that need to define
-      executable_path:
+      <<: *serverless_config
+      <<: *external_resource
+      installation_source:
         type: string
-        description: The path to the serverless binary executable.
-        default: /usr/bin/serverless
-      variables:
-        type: dict
-        description: Set of variables to use for functions
-        required: false
+        default: 'https://github.com/serverless/serverless/releases/download/v3.22.0/serverless-linux-x64'
+        description: >
+          Location to download the Helm installation from. Ignored if 'use_existing_resource' is true.
+      max_sleep_time:
+        type: integer
+        default: 300
     interfaces:
       cloudify.interfaces.lifecycle:
         create:
-          implementation: serverless.serverless_plugin.tasks.create
-        configure:
-          implementation: serverless.serverless_plugin.tasks.configure
-        start:
-          implementation: serverless.serverless_plugin.tasks.start
-        stop:
-          implementation: serverless.serverless_plugin.tasks.stop
+          implementation: sl.serverless_plugin.tasks.install_binary
         delete:
-          implementation: serverless.serverless_plugin.tasks.delete
+          implementation: sl.serverless_plugin.tasks.uninstall_binary
+
+  cloudify.nodes.serverless.Service:
+    derived_from: cloudify.nodes.SoftwareComponent
+    properties:
+      <<: *serverless_config
+      <<: *external_resource
+      client_config:
+        type: cloudify.types.serverless.ClientConfig
+        description: Configure the Serverless provider and client credentials.
+        required: true
+      resource_config:
+        type: cloudify.types.serverless.ServiceConfig
+        required: true
+    interfaces:
+      cloudify.interfaces.lifecycle:
+        create:
+          implementation: sl.serverless_plugin.tasks.create
+        configure:
+          implementation: sl.serverless_plugin.tasks.configure
+        start:
+          implementation: sl.serverless_plugin.tasks.start
+        stop:
+          implementation: sl.serverless_plugin.tasks.stop
+        delete:
+          implementation: sl.serverless_plugin.tasks.delete
       serverless.interface:
         invoke:
-          implementation: serverless.serverless_plugin.tasks.invoke
+          implementation: sl.serverless_plugin.tasks.invoke
           inputs:
             functions:
               default: []

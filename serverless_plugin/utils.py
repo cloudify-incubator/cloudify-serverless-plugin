@@ -11,3 +11,23 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+from cloudify_common_sdk.utils import get_node_instance_dir
+from cloudify_common_sdk.secure_property_management import get_stored_property
+
+from serverless_sdk import Serverless
+
+SERVERLESS_PARAMS = [
+    'serverless_config',
+    'resource_config',
+    'client_config',
+]
+
+
+def initialize_serverless(_ctx):
+    params = {}
+    for key in SERVERLESS_PARAMS:
+        params[key] = get_stored_property(_ctx, key)
+    params['root_directory'] = get_node_instance_dir()
+    params['logger'] = _ctx.logger
+    return Serverless(**params)
