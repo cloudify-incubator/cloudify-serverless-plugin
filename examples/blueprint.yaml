@@ -1,0 +1,34 @@
+tosca_definitions_version: cloudify_dsl_1_4
+
+imports:
+  - https://cloudify.co/spec/cloudify/6.4.0/types.yaml
+  - plugin:cloudify-serverless-plugin
+
+node_templates:
+
+  sl:
+    type: cloudify.nodes.serverless.Binary
+    properties:
+      installation_source: ''
+
+  hello_functions:
+    type: cloudify.nodes.serverless.Service
+    properties:
+      client_config:
+        provider: aws
+        credentials:
+          key: { get_secret: aws_access_key_id }
+          secret: { get_secret: aws_secret_access_key }
+      resource_config:
+        name: 'aws-service'
+        template: 'aws-python3'
+        functions:
+          - name: hello_1
+            path: resources/handler_1.py
+            handler: handler_1.hello_1
+          - name: hello_2
+            path: resources/handler_2.py
+            handler: handler_2.hello_2
+    relationships:
+      - type: cloudify.relationships.depends_on
+        target: sl

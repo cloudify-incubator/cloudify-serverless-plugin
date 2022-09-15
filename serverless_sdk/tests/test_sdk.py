@@ -53,6 +53,39 @@ TEST_RESOURCE_CONFIG = {
     ]
 }
 
+EXPECTED_SERVERLESS_YML = """functions:
+- qux:
+    environment:
+      taco: bell
+    events:
+    - bongo
+    handler: quux
+name: bar
+template: baz
+template_path: ''
+template_url: ''
+"""
+
+FOO_YAML = """service: aws-service
+stage: dev
+region: us-east-1
+stack: aws-service-dev
+functions:
+  hello_1: aws-service-dev-hello_1
+  hello_2: aws-service-dev-hello_2
+"""
+
+FOO_JSON = {
+    'service': 'aws-service',
+    'stage': 'dev',
+    'region': 'us-east-1',
+    'stack': 'aws-service-dev',
+    'functions': {
+        'hello_1': 'aws-service-dev-hello_1',
+        'hello_2': 'aws-service-dev-hello_2'
+    }
+}
+
 
 class ServerlessSDKTestBase(unittest.TestCase):
 
@@ -63,7 +96,6 @@ class ServerlessSDKTestBase(unittest.TestCase):
             'bar',
             '--template',
             'baz',
-            None,
             [
                 {
                     'name': 'qux',
@@ -87,7 +119,6 @@ class ServerlessSDKTestBase(unittest.TestCase):
                 func(*args, **kwargs)
             finally:
                 shutil.rmtree(kwargs['test_root_dir'])
-
         return wrapper
 
     @_test_wrapper
@@ -99,6 +130,8 @@ class ServerlessSDKTestBase(unittest.TestCase):
 
         sl = Serverless(
             test_logger,
+            'test_dp',
+            'test_ni',
             TEST_CLIENT_CONFIG,
             TEST_RESOURCE_CONFIG,
             TEST_SERVERLESS_CONFIG,
@@ -125,39 +158,12 @@ class ServerlessSDKTestBase(unittest.TestCase):
             test_root_dir
         )
         self.assertEqual(
-            sl.credentials_command,
-            [
-                'config',
-                'credentials',
-                '--provider',
-                'foobar',
-                '--key',
-                'secret_name',
-                '--secret',
-                'super_secret'
-            ]
-        )
-        self.assertEqual(
             sl.executable_path,
             'foo'
         )
         self.assertEqual(
             sl.options,
-            [
-                '--name',
-                'bar',
-                '--template',
-                'baz',
-                None,
-                [
-                    {
-                        'name': 'qux',
-                        'handler': 'quux',
-                        'events': ['bongo'],
-                        'environment': {'taco': 'bell'}
-                    }
-                ]
-            ]
+            ['--name', 'bar', '--template', 'baz']
         )
 
     @_test_wrapper
@@ -169,6 +175,8 @@ class ServerlessSDKTestBase(unittest.TestCase):
 
         sl = Serverless(
             test_logger,
+            'test_dp',
+            'test_ni',
             TEST_CLIENT_CONFIG,
             TEST_RESOURCE_CONFIG,
             TEST_SERVERLESS_CONFIG,
@@ -188,20 +196,26 @@ class ServerlessSDKTestBase(unittest.TestCase):
                         **__):
         sl = Serverless(
             test_logger,
+            'test_dp',
+            'test_ni',
             TEST_CLIENT_CONFIG,
             TEST_RESOURCE_CONFIG,
             TEST_SERVERLESS_CONFIG,
             test_root_dir,
         )
-        with patch('serverless_sdk.run_subprocess') as run_subprocess:
+        with patch('serverless_sdk.Serverless._execute') as run_subprocess:
             run_subprocess.return_value = True
             sl._subcommand('bar', ['--baz'], 'qux')
             run_subprocess.assert_called_with(
                 ['foo', 'bar', '--baz'],
-                sl.logger,
                 'qux',
-                None,
                 {
+                    'TMP': sl.tempenv,
+                    'TEMP': sl.tempenv,
+                    'TMPDIR': sl.tempenv,
+                },
+                additional_args={
+                    'env': {},
                     'log_stdout': sl._log_stdout
                 },
                 return_output=sl._log_stdout
@@ -216,23 +230,28 @@ class ServerlessSDKTestBase(unittest.TestCase):
 
         sl = Serverless(
             test_logger,
+            'test_dp',
+            'test_ni',
             TEST_CLIENT_CONFIG,
             TEST_RESOURCE_CONFIG,
             TEST_SERVERLESS_CONFIG,
             test_root_dir,
         )
 
-        with patch('serverless_sdk.run_subprocess') as run_subprocess:
+        with patch('serverless_sdk.Serverless._execute') as run_subprocess:
             run_subprocess.return_value = True
             sl.create()
-            cmd = ['foo', 'create']
-            cmd.extend(self.test_options)
+            cmd = ['foo', 'create', '--name', 'bar', '--template', 'baz']
             run_subprocess.assert_called_with(
                 cmd,
-                sl.logger,
                 sl.root_directory,
-                None,
                 {
+                    'TMP': sl.tempenv,
+                    'TEMP': sl.tempenv,
+                    'TMPDIR': sl.tempenv,
+                },
+                additional_args={
+                    'env': {},
                     'log_stdout': sl._log_stdout
                 },
                 return_output=sl._log_stdout
@@ -247,22 +266,28 @@ class ServerlessSDKTestBase(unittest.TestCase):
 
         sl = Serverless(
             test_logger,
+            'test_dp',
+            'test_ni',
             TEST_CLIENT_CONFIG,
             TEST_RESOURCE_CONFIG,
             TEST_SERVERLESS_CONFIG,
             test_root_dir,
         )
 
-        with patch('serverless_sdk.run_subprocess') as run_subprocess:
+        with patch('serverless_sdk.Serverless._execute') as run_subprocess:
             run_subprocess.return_value = True
             sl.deploy()
             cmd = ['foo', 'deploy']
             run_subprocess.assert_called_with(
                 cmd,
-                sl.logger,
                 sl.root_directory,
-                None,
                 {
+                    'TMP': sl.tempenv,
+                    'TEMP': sl.tempenv,
+                    'TMPDIR': sl.tempenv,
+                },
+                additional_args={
+                    'env': {},
                     'log_stdout': sl._log_stdout
                 },
                 return_output=sl._log_stdout
@@ -277,22 +302,28 @@ class ServerlessSDKTestBase(unittest.TestCase):
 
         sl = Serverless(
             test_logger,
+            'test_dp',
+            'test_ni',
             TEST_CLIENT_CONFIG,
             TEST_RESOURCE_CONFIG,
             TEST_SERVERLESS_CONFIG,
             test_root_dir,
         )
 
-        with patch('serverless_sdk.run_subprocess') as run_subprocess:
+        with patch('serverless_sdk.Serverless._execute') as run_subprocess:
             run_subprocess.return_value = True
             sl.destroy()
             cmd = ['foo', 'remove']
             run_subprocess.assert_called_with(
                 cmd,
-                sl.logger,
                 sl.root_directory,
-                None,
                 {
+                    'TMP': sl.tempenv,
+                    'TEMP': sl.tempenv,
+                    'TMPDIR': sl.tempenv,
+                },
+                additional_args={
+                    'env': {},
                     'log_stdout': sl._log_stdout
                 },
                 return_output=sl._log_stdout
@@ -314,6 +345,8 @@ class ServerlessSDKTestBase(unittest.TestCase):
         }
         sl = Serverless(
             test_logger,
+            'test_dp',
+            'test_ni',
             client_config,
             TEST_RESOURCE_CONFIG,
             TEST_SERVERLESS_CONFIG,
@@ -322,30 +355,12 @@ class ServerlessSDKTestBase(unittest.TestCase):
         with open(os.path.join(test_root_dir, 'serverless.yml'), 'w') as fout:
             yaml.dump(TEST_RESOURCE_CONFIG, fout, allow_unicode=True)
 
-        with patch('serverless_sdk.run_subprocess') as run_subprocess:
+        with patch('serverless_sdk.Serverless._execute') as run_subprocess:
             run_subprocess.return_value = True
             sl.configure()
-            cmd = [
-                'foo',
-                'config',
-                'credentials',
-                '--provider',
-                'aws',
-                '--key',
-                'secret_name',
-                '--secret',
-                'super_secret'
-            ]
-            run_subprocess.assert_called_with(
-                cmd,
-                sl.logger,
-                sl.root_directory,
-                None,
-                {
-                    'log_stdout': sl._log_stdout
-                },
-                return_output=sl._log_stdout
-            )
+            with open(os.path.join(test_root_dir, 'serverless.yml'),
+                      'r') as fout:
+                self.assertEqual(fout.read(), EXPECTED_SERVERLESS_YML)
 
     @_test_wrapper
     def test_invoke(self,
@@ -356,23 +371,102 @@ class ServerlessSDKTestBase(unittest.TestCase):
 
         sl = Serverless(
             test_logger,
+            'test_dp',
+            'test_ni',
             TEST_CLIENT_CONFIG,
             TEST_RESOURCE_CONFIG,
             TEST_SERVERLESS_CONFIG,
             test_root_dir,
         )
 
-        with patch('serverless_sdk.run_subprocess') as run_subprocess:
+        with patch('serverless_sdk.Serverless._execute') as run_subprocess:
             run_subprocess.return_value = True
             sl.invoke('yum')
             cmd = ['foo', 'invoke', '--function', 'yum']
             run_subprocess.assert_called_with(
                 cmd,
-                sl.logger,
                 sl.root_directory,
-                None,
                 {
+                    'TMP': sl.tempenv,
+                    'TEMP': sl.tempenv,
+                    'TMPDIR': sl.tempenv,
+                },
+                additional_args={
+                    'env': {},
                     'log_stdout': sl._log_stdout
                 },
                 return_output=sl._log_stdout
             )
+
+    @_test_wrapper
+    def test_metrics(self,
+                     test_logger,
+                     test_root_dir,
+                     *_,
+                     **__):
+
+        sl = Serverless(
+            test_logger,
+            'test_dp',
+            'test_ni',
+            TEST_CLIENT_CONFIG,
+            TEST_RESOURCE_CONFIG,
+            TEST_SERVERLESS_CONFIG,
+            test_root_dir,
+        )
+
+        with patch('serverless_sdk.Serverless._execute') as run_subprocess:
+            run_subprocess.return_value = True
+            sl.metrics('yum')
+            cmd = ['foo', 'metrics', '--function', 'yum']
+            run_subprocess.assert_called_with(
+                cmd,
+                sl.root_directory,
+                {
+                    'TMP': sl.tempenv,
+                    'TEMP': sl.tempenv,
+                    'TMPDIR': sl.tempenv,
+                },
+                additional_args={
+                    'env': {},
+                    'log_stdout': sl._log_stdout
+                },
+                return_output=sl._log_stdout
+            )
+
+    @_test_wrapper
+    def test_info(self,
+                  test_logger,
+                  test_root_dir,
+                  *_,
+                  **__):
+
+        sl = Serverless(
+            test_logger,
+            'test_dp',
+            'test_ni',
+            TEST_CLIENT_CONFIG,
+            TEST_RESOURCE_CONFIG,
+            TEST_SERVERLESS_CONFIG,
+            test_root_dir,
+        )
+
+        with patch('serverless_sdk.Serverless._execute') as run_subprocess:
+            run_subprocess.return_value = FOO_YAML
+            result = sl.info()
+            cmd = ['foo', 'info']
+            run_subprocess.assert_called_with(
+                cmd,
+                sl.root_directory,
+                {
+                    'TMP': sl.tempenv,
+                    'TEMP': sl.tempenv,
+                    'TMPDIR': sl.tempenv,
+                },
+                additional_args={
+                    'env': {},
+                    'log_stdout': sl._log_stdout
+                },
+                return_output=sl._log_stdout
+            )
+            self.assertEqual(result, FOO_JSON)

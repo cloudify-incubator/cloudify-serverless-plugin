@@ -4,6 +4,7 @@ operation_kwargs:
    - hello_1
    - hello_2
 operation: 'serverless.interface.invoke'
-node_instance_ids:
-  - example-aws-serverless_pqua9s 
+node_ids:
+  - hello_functions
+
 

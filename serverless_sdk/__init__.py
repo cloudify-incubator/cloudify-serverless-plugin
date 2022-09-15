@@ -13,9 +13,12 @@
 # limitations under the License.
 
 import os
+import shutil
+import tempfile
+from pathlib import Path
 
 import yaml
-from cloudify_common_sdk.utils import run_subprocess
+from cloudify_common_sdk.cli_tool_base import CliTool
 
 
 class CloudifyServerlessSDKError(Exception):
@@ -31,7 +34,7 @@ SERVICE_CONFIG_MAP = {
 }
 
 
-class Serverless(object):
+class Serverless(CliTool):
     """
     This is an interface for handling running and configuring
     Serverless in different providers
@@ -39,19 +42,25 @@ class Serverless(object):
 
     def __init__(self,
                  logger,
-                 client_config,
-                 resource_config,
+                 deployment_name,
+                 node_instance_name,
+                 client_config=None,
+                 resource_config=None,
                  serverless_config=None,
                  root_directory=None,
                  ):
 
-        self.logger = logger
-        self._client_config = client_config
-        self._resource_config = resource_config
-        self._serverless_config = serverless_config
+        self._tool_name = 'serverless'
+        super().__init__(logger, deployment_name, node_instance_name)
+        self._client_config = client_config or {}
+        self._resource_config = resource_config or {}
+        self._serverless_config = serverless_config or {}
         self._root_directory = root_directory
         self._serverless_config_path = None
-        self._additional_args = {}
+        self._additional_args = {
+            'env': {}
+        }
+        self._tempenv = None
         self._log_stdout = True
 
     @property
@@ -109,7 +118,8 @@ class Serverless(object):
     @property
     def serverless_config_path(self):
         if not self._serverless_config_path:
-            return os.path.join(self.root_directory, 'serverless.yml')
+            self._serverless_config_path = os.path.join(
+                self.root_directory, 'serverless.yml')
         return self._serverless_config_path
 
     @serverless_config_path.setter
@@ -117,27 +127,32 @@ class Serverless(object):
         self._serverless_config_path = value
 
     @property
-    def credentials_command(self):
-        return [
-            'config',
-            'credentials',
-            '--provider',
-            self.provider,
-            '--key',
-            self.credentials.get('key'),
-            '--secret',
-            self.credentials.get('secret')
-        ]
+    def tempenv(self):
+        if not self._tempenv:
+            self._tempenv = tempfile.mkdtemp()
+        return self._tempenv
 
     @property
     def executable_path(self):
-        return self.serverless_config.get('executable_path')
+        if not self._executable_path:
+            self._executable_path = self.serverless_config.get(
+                'executable_path')
+        return self._executable_path
+
+    @executable_path.setter
+    def executable_path(self, value):
+        self._executable_path = value
 
     @property
     def options(self):
         options = []
         for key, value in self.resource_config.items():
             if value:
+                if key not in SERVICE_CONFIG_MAP:
+                    self.logger.error(
+                        'Resource config key {} is not valid. '
+                        'Ignoring...'.format(key))
+                    continue
                 option = SERVICE_CONFIG_MAP.get(key)
                 options.append(option)
                 options.append(value)
@@ -161,18 +176,39 @@ class Serverless(object):
         cmd = self._command(cmd)
         return self.execute(cmd, cwd=cwd)
 
+    @property
+    def create_options(self):
+        options = []
+        for key, value in self.resource_config.items():
+            if key == 'functions':
+                continue
+            if value:
+                option = SERVICE_CONFIG_MAP.get(key)
+                options.append(option)
+                options.append(value)
+                if option == 'name':
+                    options.append(['--path', value])
+        return options
+
     def create(self):
-        return self._subcommand('create', self.options)
+        return self._subcommand('create', self.create_options)
+
+    def aws_warn(self):
+        if self.provider == 'aws':
+            self.logger.info('Provider "aws" was provided. '
+                             'The default behavior for serverless is to '
+                             'modify the ~/.aws profiles. However, since '
+                             'Cloudify is a shared system, this is not '
+                             'possible. The key and secret that were provided '
+                             'will be used in environment variables.')
 
     def configure(self):
-        if self.provider == 'aws':
-            cmd = self._command(self.credentials_command)
-            self.execute(cmd)
-
-        # TODO, need to handle other providers
+        self.aws_warn()
+        if not os.path.exists(self.serverless_config_path):
+            Path(self.serverless_config_path).touch()
         with open(self.serverless_config_path, 'r') as yaml_file:
             serverless_config = yaml_file.read()
-        config = yaml.safe_load(serverless_config)
+        config = yaml.safe_load(serverless_config) or {}
         functions = []
         # Handling functions configurations
         for function in self.functions:
@@ -182,11 +218,13 @@ class Serverless(object):
                 if key not in ['path', 'name']
             }
             functions.append({function_name: fn_config})
-
         config['functions'] = functions
-
         with open(self.serverless_config_path, 'w') as updated_file:
             yaml.safe_dump(config, updated_file, default_flow_style=False)
+
+    def info(self):
+        return yaml.safe_load(
+            self._subcommand('info', cwd=self.root_directory))
 
     def invoke(self, name):
         return self._subcommand(
@@ -195,6 +233,16 @@ class Serverless(object):
                 '--function',
                 name
             ],
+            cwd=self.root_directory)
+
+    def metrics(self, function_name=None):
+        if function_name:
+            options = ['--function', function_name]
+        else:
+            options = []
+        return self._subcommand(
+            'metrics',
+            options=options,
             cwd=self.root_directory)
 
     def deploy(self):
@@ -211,6 +259,34 @@ class Serverless(object):
         # self.execute(['rm', '-rf', self.credentials_dir])
         pass
 
+    def credentialize_env(self, env=None):
+        env = env or {}
+        env.update({
+            'TMP': self.tempenv,
+            'TEMP': self.tempenv,
+            'TMPDIR': self.tempenv,
+        })
+        if self.client_config.get('aws'):
+            access_key = self.client_config('credentials', {}).get('key')
+            secret_key = self.client_config('credentials', {}).get('secret')
+            env.update(
+                {
+                    'AWS_ACCESS_KEY_ID': access_key,
+                    'AWS_SECRET_ACCESS_KEY': secret_key
+                }
+            )
+        env_from_props = self.resource_config.get('env')
+        if env_from_props:
+            for k, v in env_from_props.items():
+                if k in env:
+                    self.logger.error(
+                        'The environment variable key {} is provided in the '
+                        'resource config. However, it already exists in the '
+                        'current shell. '
+                        'This may have unexpected results.'.format(k))
+                env[k] = v
+        return env
+
     def execute(self,
                 command,
                 return_output=None,
@@ -220,10 +296,32 @@ class Serverless(object):
         return_output = return_output if return_output is not None \
             else self._log_stdout
         self.additional_args['log_stdout'] = return_output
-        return run_subprocess(
-            command,
-            self.logger,
-            cwd or self.root_directory,
-            additional_env,
-            self.additional_args,
-            return_output=return_output)
+        try:
+            result = self._execute(
+                command,
+                cwd or self.root_directory,
+                self.credentialize_env(additional_env),
+                additional_args=self.additional_args,
+                return_output=return_output)
+        finally:
+            shutil.rmtree(self.tempenv, ignore_errors=True)
+        return result
+
+    def install_with_npm(self):
+        command = 'npm install --prefix {} -g serverless'.format(
+            self.root_directory)
+        self.execute(
+            command.split(),
+            cwd=self.root_directory)
+        self.executable_path = os.path.join(
+            self.root_directory,
+            'bin',
+            'serverless'
+        )
+
+    def uninstall_with_npm(self):
+        command = 'npm uninstall --prefix {} -g serverless'.format(
+            self.root_directory)
+        self.execute(
+            command.split(),
+            cwd=self.root_directory)

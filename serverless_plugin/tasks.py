@@ -17,56 +17,103 @@ import os
 from cloudify.decorators import operation
 from cloudify.exceptions import NonRecoverableError
 
-from .decorators import with_serverless
+from . import decorators
 
 
 def _download_handlers(ctx, handler_path, target_path):
     ctx.download_resource(handler_path, target_path)
 
 
+BINARY_NAME = "serverless"
+
+
 @operation
-@with_serverless
+@decorators.with_serverless
 def create(serverless, **_):
     serverless.create()
 
 
 @operation
-@with_serverless
+@decorators.with_serverless
 def configure(ctx, serverless, **_):
     for function in serverless.functions:
-        if not function.get('path'):
-            raise NonRecoverableError('Function patt does not exist')
-
-        filename = function['path'].split('/')[-1]
+        filepath = function.get('path')
+        if not filepath:
+            raise NonRecoverableError(
+                'Function path does not exist. '
+                'Provided function: {}'.format(function))
+        filename = os.path.basename(filepath)
         _download_handlers(
             ctx,
-            function['path'],
-            os.path.join(serverless.serverless_base_dir, filename)
+            filepath,
+            os.path.join(serverless.root_directory, filename)
         )
-
     serverless.configure()
 
 
 @operation
-@with_serverless
+@decorators.with_serverless
 def start(serverless, **_):
     serverless.deploy()
 
 
 @operation
-@with_serverless
+@decorators.with_serverless
+def poststart(ctx, serverless, **_):
+    ctx.instance.runtime_properties['info'] = serverless.info()
+
+
+@operation
+@decorators.with_serverless
 def stop(serverless, **_):
     serverless.destroy()
 
 
 @operation
-@with_serverless
+@decorators.with_serverless
 def delete(serverless, **_):
     serverless.clean()
 
 
 @operation
-@with_serverless
-def invoke(serverless, functions):
-    for function in functions:
-        serverless.invoke(function)
+@decorators.with_serverless
+def invoke(serverless, **_):
+    for function in serverless.functions:
+        serverless.invoke(function['name'])
+
+
+@operation
+@decorators.with_serverless
+def metrics(serverless, **_):
+    if not serverless.functions:
+        serverless.metrics()
+    else:
+        for function in serverless.functions:
+            serverless.metrics(function['name'])
+
+
+@operation
+@decorators.with_serverless
+def install_binary(ctx, serverless, **_):
+    if not ctx.node.properties.get('use_external_resource'):
+        installation_dir = serverless.root_directory
+        installation_source = ctx.node.properties.get('installation_source')
+        if installation_source:
+            serverless.install_binary(
+                ctx.node.properties.get('installation_source'),
+                installation_dir,
+                os.path.join(installation_dir, BINARY_NAME),
+                )
+            ctx.instance.runtime_properties['executable_path'] = os.path.join(
+                installation_dir, BINARY_NAME)
+        else:
+            serverless.install_with_npm()
+            ctx.instance.runtime_properties['executable_path'] = \
+                serverless.executable_path
+
+
+@operation
+@decorators.with_serverless
+def uninstall_binary(ctx, serverless, **_):
+    if not ctx.node.properties.get('use_external_resource'):
+        serverless.uninstall_binary()

@@ -21,7 +21,7 @@ data_types:
         description: The Serverless provider name.
         required: false
       credentials:
-        # type: dict
+        type: dict
         required: false
         description: Credentials of the provider.
 
@@ -44,11 +44,12 @@ data_types:
         description: Template local path for the service.
         required: false
       functions:
-        # type: list
+        type: list
+        item_type: cloudify.types.serverless.FunctionConfig
         required: true
         description: List of cloudify.types.serverless.FunctionConfig.
       env:
-        # type: dict
+        type: dict
         required: false
         description: >
           A dict of environment variables to use during execution of serverless CLI calls.
@@ -68,11 +69,11 @@ data_types:
         description: The Serverless function handelr.
         required: true
       events:
-        # type: list
+        type: list
         description: List of events assoicated with the function.
         required: false
       environment:
-        # type: dict
+        type: dict
         description: Function environment variables.
         required: false
 

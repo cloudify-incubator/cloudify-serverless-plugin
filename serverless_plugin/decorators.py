@@ -12,13 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys
 from functools import wraps
 
-from .utils import initialize_serverless
+from .utils import initialize_serverless, generate_traceback_exception
 
 from cloudify.exceptions import NonRecoverableError
-from cloudify.utils import exception_to_error_cause
 
 
 def with_serverless(func):
@@ -29,13 +27,7 @@ def with_serverless(func):
         try:
             func(*args, **kwargs)
         except Exception as error:
-            _, _, tb = sys.exc_info()
-            if hasattr(error, 'message'):
-                message = error.message
-            else:
-                message = str(error)
-            raise NonRecoverableError(
-                'Failure while trying to run operation'
-                '{0}: {1}'.format(ctx.operation.name, message),
-                causes=[exception_to_error_cause(error, tb)])
+            error_traceback = generate_traceback_exception()
+            raise NonRecoverableError('{0}'.format(str(error)),
+                                      causes=[error_traceback])
     return function
