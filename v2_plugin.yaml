@@ -151,3 +151,13 @@ node_types:
           inputs:
             functions:
               default: []
+
+blueprint_labels:
+  obj-type:
+    values:
+      - serverless
+
+labels:
+  obj-type:
+    values:
+      - serverless
