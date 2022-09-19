@@ -191,14 +191,14 @@ class ServerlessTestBase(unittest.TestCase):
                 'baz',
             ],
             ctx.instance.runtime_properties['root_directory'],
-            {
-                'TMP': tempenv,
-                'TEMP': tempenv,
-                'TMPDIR': tempenv,
-            },
             additional_args={
                 'env': {},
                 'log_stdout': True,
+            },
+            env={
+                'TMP': tempenv,
+                'TEMP': tempenv,
+                'TMPDIR': tempenv,
             },
             return_output=True
         )
@@ -250,14 +250,14 @@ class ServerlessTestBase(unittest.TestCase):
                     'deploy',
                 ],
                 ctx.instance.runtime_properties['root_directory'],
-                {
+                additional_args={
+                    'env': {},
+                    'log_stdout': True
+                },
+                env={
                     'TMP': tempenv,
                     'TEMP': tempenv,
                     'TMPDIR': tempenv,
-                },
-                additional_args={
-                    'env': {},
-                    'log_stdout': True,
                 },
                 return_output=True
         )
@@ -283,14 +283,14 @@ class ServerlessTestBase(unittest.TestCase):
                     'remove',
                 ],
                 ctx.instance.runtime_properties['root_directory'],
-                {
-                    'TMP': tempenv,
-                    'TEMP': tempenv,
-                    'TMPDIR': tempenv,
-                },
                 additional_args={
                     'env': {},
                     'log_stdout': True
+                },
+                env={
+                    'TMP': tempenv,
+                    'TEMP': tempenv,
+                    'TMPDIR': tempenv,
                 },
                 return_output=True
         )
@@ -334,14 +334,14 @@ class ServerlessTestBase(unittest.TestCase):
                     'qux',
                 ],
                 ctx.instance.runtime_properties['root_directory'],
-                {
-                    'TMP': tempenv,
-                    'TEMP': tempenv,
-                    'TMPDIR': tempenv,
-                },
                 additional_args={
                     'env': {},
                     'log_stdout': True,
+                },
+                env={
+                    'TMP': tempenv,
+                    'TEMP': tempenv,
+                    'TMPDIR': tempenv,
                 },
                 return_output=True
         )
@@ -376,14 +376,14 @@ class ServerlessTestBase(unittest.TestCase):
                     'qux',
                 ],
                 ctx.instance.runtime_properties['root_directory'],
-                {
+                additional_args={
+                    'env': {},
+                    'log_stdout': True
+                },
+                env={
                     'TMP': tempenv,
                     'TEMP': tempenv,
                     'TMPDIR': tempenv,
-                },
-                additional_args={
-                    'env': {},
-                    'log_stdout': True,
                 },
                 return_output=True
         )

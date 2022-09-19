@@ -180,7 +180,7 @@ class Serverless(CliTool):
     def create_options(self):
         options = []
         for key, value in self.resource_config.items():
-            if key == 'functions':
+            if key in ['functions', 'env']:
                 continue
             if value:
                 option = SERVICE_CONFIG_MAP.get(key)
@@ -266,9 +266,11 @@ class Serverless(CliTool):
             'TEMP': self.tempenv,
             'TMPDIR': self.tempenv,
         })
-        if self.client_config.get('aws'):
-            access_key = self.client_config('credentials', {}).get('key')
-            secret_key = self.client_config('credentials', {}).get('secret')
+        if self.client_config.get('provider') == 'aws':
+            access_key = self.client_config.get(
+                'credentials', {}).get('key')
+            secret_key = self.client_config.get(
+                'credentials', {}).get('secret')
             env.update(
                 {
                     'AWS_ACCESS_KEY_ID': access_key,
@@ -300,7 +302,7 @@ class Serverless(CliTool):
             result = self._execute(
                 command,
                 cwd or self.root_directory,
-                self.credentialize_env(additional_env),
+                env=self.credentialize_env(additional_env),
                 additional_args=self.additional_args,
                 return_output=return_output)
         finally:
