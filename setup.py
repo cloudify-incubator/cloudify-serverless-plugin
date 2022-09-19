@@ -1,5 +1,5 @@
 ########
-# Copyright (c) 2020 Cloudify Platform Ltd. All rights reserved
+# Copyright (c) 2022 Cloudify Platform Ltd. All rights reserved
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,16 +14,40 @@
 #    * limitations under the License.
 
 
-from setuptools import setup
-from setuptools import find_packages
+import os
+from setuptools import (
+    setup,
+    find_packages
+)
+
+
+def read(rel_path):
+    here = os.path.abspath(os.path.dirname(__file__))
+    with open(os.path.join(here, rel_path), 'r') as fp:
+        return fp.read()
+
+
+def get_version(rel_file='plugin.yaml'):
+    lines = read(rel_file)
+    for line in lines.splitlines():
+        if 'package_version' in line:
+            split_line = line.split(':')
+            line_no_space = split_line[-1].replace(' ', '')
+            line_no_quotes = line_no_space.replace('\'', '')
+            return line_no_quotes.strip('\n')
+    raise RuntimeError('Unable to find version string.')
 
 
 setup(
     name='cloudify-serverless-plugin',
-    version='0.1',
+    version=get_version(),
     author='Mohammed AbuAisha',
-    author_email='mohammeda@cloudify.co',
+    author_email='hello@cloudify.co',
     license='LICENSE',
     zip_safe=False,
     packages=find_packages(exclude=['tests*']),
-    install_requires=['cloudify-plugins-common'])
+    install_requires=[
+        "cloudify-common>=6.4",
+        "cloudify-utilities-plugins-sdk>=0.0.85",
+    ]
+)

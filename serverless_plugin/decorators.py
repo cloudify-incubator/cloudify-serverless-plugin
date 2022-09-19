@@ -1,4 +1,4 @@
-# Copyright (c) 2020 Cloudify Platform Ltd. All rights reserved
+# Copyright (c) 2020 - 2022 Cloudify Platform Ltd. All rights reserved
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,47 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-import sys
-
 from functools import wraps
 
-from cloudify.exceptions import NonRecoverableError
-from cloudify.utils import exception_to_error_cause
+from .utils import initialize_serverless, generate_traceback_exception
 
-from serverless_sdk import Serverless
+from cloudify.exceptions import NonRecoverableError
 
 
 def with_serverless(func):
     @wraps(func)
     def function(*args, **kwargs):
         ctx = kwargs['ctx']
-        operation_name = ctx.operation.name
-        provider_config = ctx.node.properties['provider_config']
-        executable_path = ctx.node.properties['executable_path']
-        service_config = ctx.node.properties['service_config']
-        functions = ctx.node.properties['functions']
-        variables = ctx.node.properties.get('variables')
-        if not os.path.exists(executable_path):
-            raise NonRecoverableError(
-                "Serverless's executable not found in {0}. Please set the "
-                "'executable_path' property accordingly.".format(
-                    executable_path))
-        serverless = Serverless(
-            ctx.logger,
-            provider_config,
-            service_config,
-            functions,
-            executable_path,
-            variables
-        )
-        kwargs['serverless'] = serverless
+        kwargs['serverless'] = initialize_serverless(ctx)
         try:
             func(*args, **kwargs)
         except Exception as error:
-            _, _, tb = sys.exc_info()
-            raise NonRecoverableError(
-                'Failure while trying to run operation'
-                '{0}: {1}'.format(operation_name, error.message),
-                causes=[exception_to_error_cause(error, tb)])
+            error_traceback = generate_traceback_exception()
+            raise NonRecoverableError('{0}'.format(str(error)),
+                                      causes=[error_traceback])
     return function
