@@ -209,14 +209,14 @@ class ServerlessSDKTestBase(unittest.TestCase):
             run_subprocess.assert_called_with(
                 ['foo', 'bar', '--baz'],
                 'qux',
-                {
-                    'TMP': sl.tempenv,
-                    'TEMP': sl.tempenv,
-                    'TMPDIR': sl.tempenv,
-                },
                 additional_args={
                     'env': {},
                     'log_stdout': sl._log_stdout
+                },
+                env={
+                    'TMP': sl.tempenv,
+                    'TEMP': sl.tempenv,
+                    'TMPDIR': sl.tempenv,
                 },
                 return_output=sl._log_stdout
             )
@@ -245,14 +245,14 @@ class ServerlessSDKTestBase(unittest.TestCase):
             run_subprocess.assert_called_with(
                 cmd,
                 sl.root_directory,
-                {
-                    'TMP': sl.tempenv,
-                    'TEMP': sl.tempenv,
-                    'TMPDIR': sl.tempenv,
-                },
                 additional_args={
                     'env': {},
                     'log_stdout': sl._log_stdout
+                },
+                env={
+                    'TMP': sl.tempenv,
+                    'TEMP': sl.tempenv,
+                    'TMPDIR': sl.tempenv,
                 },
                 return_output=sl._log_stdout
             )
@@ -281,14 +281,14 @@ class ServerlessSDKTestBase(unittest.TestCase):
             run_subprocess.assert_called_with(
                 cmd,
                 sl.root_directory,
-                {
-                    'TMP': sl.tempenv,
-                    'TEMP': sl.tempenv,
-                    'TMPDIR': sl.tempenv,
-                },
                 additional_args={
                     'env': {},
                     'log_stdout': sl._log_stdout
+                },
+                env={
+                    'TMP': sl.tempenv,
+                    'TEMP': sl.tempenv,
+                    'TMPDIR': sl.tempenv,
                 },
                 return_output=sl._log_stdout
             )
@@ -317,14 +317,14 @@ class ServerlessSDKTestBase(unittest.TestCase):
             run_subprocess.assert_called_with(
                 cmd,
                 sl.root_directory,
-                {
-                    'TMP': sl.tempenv,
-                    'TEMP': sl.tempenv,
-                    'TMPDIR': sl.tempenv,
-                },
                 additional_args={
                     'env': {},
                     'log_stdout': sl._log_stdout
+                },
+                env={
+                    'TMP': sl.tempenv,
+                    'TEMP': sl.tempenv,
+                    'TMPDIR': sl.tempenv,
                 },
                 return_output=sl._log_stdout
             )
@@ -386,14 +386,14 @@ class ServerlessSDKTestBase(unittest.TestCase):
             run_subprocess.assert_called_with(
                 cmd,
                 sl.root_directory,
-                {
-                    'TMP': sl.tempenv,
-                    'TEMP': sl.tempenv,
-                    'TMPDIR': sl.tempenv,
-                },
                 additional_args={
                     'env': {},
                     'log_stdout': sl._log_stdout
+                },
+                env={
+                    'TMP': sl.tempenv,
+                    'TEMP': sl.tempenv,
+                    'TMPDIR': sl.tempenv,
                 },
                 return_output=sl._log_stdout
             )
@@ -422,14 +422,14 @@ class ServerlessSDKTestBase(unittest.TestCase):
             run_subprocess.assert_called_with(
                 cmd,
                 sl.root_directory,
-                {
-                    'TMP': sl.tempenv,
-                    'TEMP': sl.tempenv,
-                    'TMPDIR': sl.tempenv,
-                },
                 additional_args={
                     'env': {},
                     'log_stdout': sl._log_stdout
+                },
+                env={
+                    'TMP': sl.tempenv,
+                    'TEMP': sl.tempenv,
+                    'TMPDIR': sl.tempenv,
                 },
                 return_output=sl._log_stdout
             )
@@ -458,14 +458,14 @@ class ServerlessSDKTestBase(unittest.TestCase):
             run_subprocess.assert_called_with(
                 cmd,
                 sl.root_directory,
-                {
-                    'TMP': sl.tempenv,
-                    'TEMP': sl.tempenv,
-                    'TMPDIR': sl.tempenv,
-                },
                 additional_args={
                     'env': {},
                     'log_stdout': sl._log_stdout
+                },
+                env={
+                    'TMP': sl.tempenv,
+                    'TEMP': sl.tempenv,
+                    'TMPDIR': sl.tempenv,
                 },
                 return_output=sl._log_stdout
             )

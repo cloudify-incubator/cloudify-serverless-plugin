@@ -48,6 +48,6 @@ setup(
     packages=find_packages(exclude=['tests*']),
     install_requires=[
         "cloudify-common>=6.4",
-        "cloudify-utilities-plugins-sdk>=0.0.85",
+        "cloudify-utilities-plugins-sdk>=0.0.89",
     ]
 )
