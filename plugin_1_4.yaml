@@ -45,7 +45,6 @@ data_types:
         required: false
       functions:
         type: list
-        item_type: cloudify.types.serverless.FunctionConfig
         required: true
         description: List of cloudify.types.serverless.FunctionConfig.
       env:
