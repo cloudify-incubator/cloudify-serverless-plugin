@@ -85,13 +85,10 @@ workflows:
           filters:
             branches:
               only: /([0-9\.]*\-build|master)/
-
-      - wagonorb/wagon_311
-
-      # - wagonorb/wagon_311:
-      #     filters:
-      #       branches:
-      #         only: /([0-9\.]*\-build|master)/
+      - wagonorb/wagon_311:
+          filters:
+            branches:
+              only: /([0-9\.]*\-build|master)/
       - wagonorb/arch64_wagon:
           filters:
             branches:
