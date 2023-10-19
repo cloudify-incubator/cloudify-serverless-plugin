@@ -2,7 +2,7 @@ plugins:
   sl:
     executor: central_deployment_agent
     package_name: cloudify-serverless-plugin
-    package_version: 0.1.2
+    package_version: 0.1.3
 data_types:
   cloudify.types.serverless.ServerlessConfig:
     properties:

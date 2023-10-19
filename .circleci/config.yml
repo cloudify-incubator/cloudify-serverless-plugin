@@ -48,16 +48,19 @@ commands:
               echo "Failed to get manager status";
               exit 1
           fi
+      - run: pip3 install urllib3==1.26.15 requests-toolbelt==0.10.1
       - run: pip3 install https://github.com/cloudify-incubator/cloudify-ecosystem-test/archive/refs/heads/master.zip
       - run: git submodule update --init --recursive --remote
 
   prepare_test_manager:
     steps:
-      - run: ecosystem-test prepare-remote-test-manager -es aws_access_key_id=$aws_access_key_id -es aws_secret_access_key=$aws_secret_access_key -p $(find ~/project/workspace/build/ -name *centos-Core*x86_64.wgn)  ~/project/plugin.yaml
+      - run: ecosystem-test prepare-remote-test-manager -es aws_access_key_id=$aws_access_key_id -es aws_secret_access_key=$aws_secret_access_key -p $(find ~/project/workspace/build/ -name *manylinux-py311-none-linux_x86_64.wgn*) ~/project/plugin_1_5.yaml
+      - run: ecosystem-test remote-upload-plugin -PN kubernetes --wagon-type manylinux
+      - run: ecosystem-test remote-upload-plugin -PN helm --wagon-type manylinux
 
   run_blueprint:
     steps:
-      - run: ecosystem-test remote-blueprint-test -b examples/blueprint.yaml --test-id=hello-world-example --on-failure=uninstall-force --timeout=1800
+      - run: ecosystem-test remote-blueprint-test -b examples/blueprint.yaml --test-id=hwe$CIRCLE_BUILD_NUM --on-failure=uninstall-force --timeout=1800
 
 jobs:
 
@@ -67,7 +70,9 @@ jobs:
       CLOUDIFY_SSL_TRUST_ALL: true
     steps:
       - checkout
-      - managerorb/create_manager_container_latest
+      - attach_workspace:
+          at: workspace
+      - setup_manager
       - prepare_test_manager
       - run_blueprint
 
@@ -101,10 +106,7 @@ workflows:
           context: 
             - plugins-inputs
           requires:
-            - wagonorb/wagon
             - wagonorb/wagon_311
-            - wagonorb/arch64_wagon
-            - wagonorb/rhel_wagon
           filters:
             branches:
               only: /([0-9\.]*\-build|master)/
@@ -145,19 +147,7 @@ workflows:
       - node/unittests_job:
           context: 
             - plugins-inputs
-      - wagonorb/wagon:
-          filters:
-            branches:
-              only: /([0-9\.]*\-build|master)/
       - wagonorb/wagon_311:
-          filters:
-            branches:
-              only: /([0-9\.]*\-build|master)/
-      - wagonorb/arch64_wagon:
-          filters:
-            branches:
-              only: /([0-9\.]*\-build|master|dev)/
-      - wagonorb/rhel_wagon:
           filters:
             branches:
               only: /([0-9\.]*\-build|master)/
@@ -165,10 +155,7 @@ workflows:
           context: 
             - plugins-inputs
           requires:
-            - wagonorb/wagon
             - wagonorb/wagon_311
-            - wagonorb/arch64_wagon
-            - wagonorb/rhel_wagon
           filters:
             branches:
               only: /([0-9\.]*\-build|master)/
