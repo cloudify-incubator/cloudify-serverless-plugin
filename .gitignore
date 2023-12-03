@@ -128,3 +128,8 @@ dmypy.json
 # Pyre type checker
 .pyre/
 .idea/
+
+cloudify-utilities-plugins-sdk
+fusion-agent
+fusion-common
+fusion-manager
