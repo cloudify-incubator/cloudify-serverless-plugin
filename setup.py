@@ -16,11 +16,9 @@
 
 import os
 import re
+import sys
 import pathlib
-from setuptools import (
-    setup,
-    find_packages
-)
+from setuptools import setup, find_packages
 
 
 def get_version():
@@ -31,6 +29,21 @@ def get_version():
         return re.search(r'\d+.\d+.\d+', var).group()
 
 
+install_requires = []
+if sys.version_info.major == 3 and sys.version_info.minor == 6:
+    packages = ['serverless_plugin', 'serverless_sdk']
+    install_requires += [
+        'cloudify-common>=6.4,<7.0.0',
+        'cloudify-utilities-plugins-sdk>=0.0.127',
+    ]
+else:
+    packages = find_packages()
+    install_requires += [
+        'fusion-common',
+        'cloudify-utilities-plugins-sdk',
+    ]
+
+
 setup(
     name='cloudify-serverless-plugin',
     version=get_version(),
@@ -38,9 +51,6 @@ setup(
     author_email='hello@cloudify.co',
     license='LICENSE',
     zip_safe=False,
-    packages=find_packages(exclude=['tests*']),
-    install_requires=[
-        "cloudify-common>=6.4",
-        "cloudify-utilities-plugins-sdk>=0.0.89",
-    ]
+    packages=packages,
+    install_requires=install_requires
 )
